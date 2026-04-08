@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#FAF8F5">
+<title>Pedidos</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FAF8F5;
+    --surface: #FFFFFF;
+    --text: #1A1714;
+    --muted: #8A857D;
+    --border: #EAE6E0;
+    --accent: #C4956A;
+    --accent-light: #F5EDE3;
+    --green: #0F6E56;
+    --green-bg: #E1F5EE;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overscroll-behavior: none;
+  }
+
+  /* ── TELA DE IMPORTAÇÃO ── */
+  #import-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100dvh;
+    padding: 2rem 1.5rem;
+    text-align: center;
+    gap: 1.5rem;
+  }
+  .import-icon { font-size: 48px; }
+  .import-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .import-title span { color: var(--accent); }
+  .import-sub { font-size: 14px; color: var(--muted); line-height: 1.6; max-width: 280px; }
+
+  .upload-area {
+    width: 100%;
+    max-width: 320px;
+    border: 2px dashed var(--border);
+    border-radius: 20px;
+    padding: 2rem 1.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--surface);
+  }
+  .upload-area.drag { border-color: var(--accent); background: var(--accent-light); }
+  .upload-area p { font-size: 14px; color: var(--muted); margin-top: 8px; }
+  .upload-area strong { font-size: 15px; color: var(--text); font-weight: 500; }
+  .upload-icon { font-size: 36px; margin-bottom: 8px; }
+
+  #file-input { display: none; }
+
+  .btn-primary {
+    width: 100%;
+    max-width: 320px;
+    padding: 14px;
+    border-radius: 99px;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-primary:active { transform: scale(0.97); opacity: 0.9; }
+
+  .import-error {
+    font-size: 13px;
+    color: #C0392B;
+    background: #FFF0EE;
+    border: 1px solid #F5C0BA;
+    border-radius: 10px;
+    padding: 10px 14px;
+    max-width: 320px;
+    width: 100%;
+  }
+
+  /* ── APP PRINCIPAL ── */
+  #app-screen { display: none; }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 1.25rem 1.25rem 1rem;
+    padding-top: calc(env(safe-area-inset-top, 0px) + 1.25rem);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    line-height: 1.2;
+  }
+  header h1 span { color: var(--accent); }
+  #status-txt { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  .header-actions { display: flex; gap: 8px; }
+
+  .btn-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 18px;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .btn-icon:active { background: var(--accent-light); border-color: var(--accent); color: var(--accent); transform: scale(0.93); }
+
+  .filters-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin: 0 -1.25rem;
+    padding: 0 1.25rem;
+  }
+  .filters-wrap::-webkit-scrollbar { display: none; }
+  .filters { display: flex; gap: 8px; width: max-content; padding-bottom: 2px; }
+
+  .filter-btn {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    padding: 7px 16px;
+    border-radius: 99px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+  .filter-btn:active { transform: scale(0.96); }
+  .filter-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 500; }
+
+  /* ── LISTA ── */
+  .list {
+    padding: 1rem 1.25rem;
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 5rem);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    animation: fadeUp 0.3s ease both;
+    transition: opacity 0.2s, transform 0.15s;
+    cursor: pointer;
+    user-select: none;
+  }
+  .card:active { transform: scale(0.98); }
+
+  .card.done {
+    opacity: 0.45;
+    border-style: dashed;
+  }
+  .card.done .card-product {
+    text-decoration: line-through;
+    color: var(--muted);
+  }
+  .card.done .card-price { text-decoration: line-through; color: var(--muted); }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .check-circle {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    transition: all 0.2s;
+    color: transparent;
+  }
+  .card.done .check-circle {
+    background: var(--green-bg);
+    border-color: var(--green);
+    color: var(--green);
+  }
+
+  .card-left { flex: 1; min-width: 0; }
+  .badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 99px;
+    margin-bottom: 6px;
+  }
+  .card-product {
+    font-family: 'Playfair Display', serif;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.35;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color 0.2s;
+  }
+  .card-price {
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--accent);
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: color 0.2s;
+  }
+
+  /* ── ESTADOS ── */
+  .state-msg {
+    text-align: center;
+    padding: 4rem 1rem;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .empty-icon { font-size: 32px; margin-bottom: 0.5rem; }
+
+  /* ── FOOTER TOTAL ── */
+  .footer-total {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    padding: 0.85rem 1.25rem;
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.85rem);
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 10;
+  }
+  .footer-left { display: flex; flex-direction: column; gap: 1px; }
+  .footer-left span { font-size: 11px; color: var(--muted); }
+  .footer-left strong { font-size: 18px; font-weight: 500; color: var(--accent); }
+  .footer-done {
+    font-size: 12px;
+    color: var(--green);
+    background: var(--green-bg);
+    padding: 5px 14px;
+    border-radius: 99px;
+    font-weight: 500;
+  }
+
+  /* BRAND COLORS */
+  .brand-natura    { background: #E1F5EE; color: #0F6E56; }
+  .brand-marykay   { background: #FBEAF0; color: #993556; }
+  .brand-boticario { background: #E6F1FB; color: #185FA5; }
+  .brand-avon      { background: #FAEEDA; color: #854F0B; }
+  .brand-eudora    { background: #EEEDFE; color: #533AB7; }
+  .brand-default   { background: #F1EFE8; color: #5F5E5A; }
+</style>
+</head>
+<body>
+
+<!-- TELA DE IMPORTAÇÃO -->
+<div id="import-screen">
+  <div class="import-icon">🌸</div>
+  <div>
+    <div class="import-title">Pedidos <span>realizados</span></div>
+    <p class="import-sub" style="margin-top:6px">Importe a planilha para ver os pedidos encomendados</p>
+  </div>
+
+  <div class="upload-area" id="upload-area" onclick="document.getElementById('file-input').click()">
+    <div class="upload-icon">📂</div>
+    <strong>Toque para escolher o arquivo</strong>
+    <p>Planilha Excel (.xlsx) ou CSV</p>
+  </div>
+
+  <input type="file" id="file-input" accept=".xlsx,.xls,.csv">
+  <div id="import-error" class="import-error" style="display:none"></div>
+  <button class="btn-primary" id="btn-carregar" style="display:none" onclick="carregarArquivo()">Carregar pedidos</button>
+</div>
+
+<!-- APP PRINCIPAL -->
+<div id="app-screen">
+  <header>
+    <div class="header-top">
+      <div>
+        <h1>Pedidos <span>realizados</span></h1>
+        <p id="status-txt"></p>
+      </div>
+      <div class="header-actions">
+        <button class="btn-icon" onclick="voltarImport()" title="Importar novo arquivo">📂</button>
+      </div>
+    </div>
+    <div class="filters-wrap">
+      <div class="filters" id="filters"></div>
+    </div>
+  </header>
+
+  <div id="main"></div>
+
+  <div class="footer-total" id="footer-total">
+    <div class="footer-left">
+      <span id="footer-count">0 produtos</span>
+      <strong id="footer-sum">R$ 0,00</strong>
+    </div>
+    <div class="footer-done" id="footer-done"></div>
+  </div>
+</div>
+
+<!-- SheetJS para ler Excel -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script>
+// ── ESTADO ──
+let todos = [];
+let filtro = "Todas";
+let feitos = JSON.parse(localStorage.getItem("pedidos_feitos") || "{}");
+let arquivoSelecionado = null;
+
+// ── IMPORTAÇÃO ──
+document.getElementById("file-input").addEventListener("change", function() {
+  const file = this.files[0];
+  if (!file) return;
+  arquivoSelecionado = file;
+  document.getElementById("upload-area").querySelector("strong").textContent = file.name;
+  document.getElementById("upload-area").querySelector("p").textContent = "Arquivo selecionado";
+  document.getElementById("btn-carregar").style.display = "block";
+  document.getElementById("import-error").style.display = "none";
+});
+
+// Drag & drop
+const uploadArea = document.getElementById("upload-area");
+uploadArea.addEventListener("dragover", e => { e.preventDefault(); uploadArea.classList.add("drag"); });
+uploadArea.addEventListener("dragleave", () => uploadArea.classList.remove("drag"));
+uploadArea.addEventListener("drop", e => {
+  e.preventDefault();
+  uploadArea.classList.remove("drag");
+  const file = e.dataTransfer.files[0];
+  if (file) {
+    arquivoSelecionado = file;
+    document.getElementById("file-input").files = e.dataTransfer.files;
+    uploadArea.querySelector("strong").textContent = file.name;
+    uploadArea.querySelector("p").textContent = "Arquivo selecionado";
+    document.getElementById("btn-carregar").style.display = "block";
+  }
+});
+
+function mostrarErro(msg) {
+  const el = document.getElementById("import-error");
+  el.textContent = msg;
+  el.style.display = "block";
+}
+
+async function carregarArquivo() {
+  if (!arquivoSelecionado) return;
+  const file = arquivoSelecionado;
+  const nome = file.name.toLowerCase();
+
+  try {
+    let rows = [];
+    if (nome.endsWith(".csv")) {
+      const text = await file.text();
+      rows = parseCSVText(text);
+    } else {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: "array" });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+    }
+
+    todos = extrairPedidos(rows);
+    if (!todos.length) {
+      mostrarErro("Nenhum pedido com status ENCOMENDADO encontrado. Verifique se a planilha tem as colunas STATUS, MARCA, PRODUTO e VALOR PRODUTO.");
+      return;
+    }
+    mostrarApp();
+  } catch(e) {
+    mostrarErro("Erro ao ler o arquivo: " + e.message);
+  }
+}
+
+function splitCSVLine(line) {
+  const result = []; let cur = "", inQ = false;
+  for (const c of line) {
+    if (c === '"') { inQ = !inQ; }
+    else if (c === ',' && !inQ) { result.push(cur.trim()); cur = ""; }
+    else cur += c;
+  }
+  result.push(cur.trim());
+  return result;
+}
+
+function parseCSVText(text) {
+  return text.trim().split(/\r?\n/).map(l => splitCSVLine(l));
+}
+
+function extrairPedidos(rows) {
+  if (rows.length < 2) return [];
+
+  // Encontra linha de cabeçalho
+  let headerIdx = 0;
+  for (let i = 0; i < Math.min(5, rows.length); i++) {
+    const row = rows[i].map(c => String(c).toLowerCase());
+    if (row.some(c => c.includes("status")) || row.some(c => c.includes("produto"))) {
+      headerIdx = i; break;
+    }
+  }
+
+  const headers = rows[headerIdx].map(h => String(h).toLowerCase().trim());
+  const iS = headers.findIndex(h => h.includes("status"));
+  const iM = headers.findIndex(h => h.includes("marca"));
+  const iP = headers.findIndex(h => h.includes("produto") && !h.includes("valor"));
+  const iV = headers.findIndex(h => h.includes("valor") && h.includes("produto"));
+
+  const pedidos = [];
+  for (let i = headerIdx + 1; i < rows.length; i++) {
+    const c = rows[i];
+    const status  = iS >= 0 ? String(c[iS] || "").trim().toUpperCase() : "";
+    const produto = iP >= 0 ? String(c[iP] || "").trim() : "";
+    if (!produto) continue;
+    if (!status.includes("ENCOMENDADO")) continue;
+    const marca = iM >= 0 ? String(c[iM] || "").trim() : "";
+    const vRaw  = iV >= 0 ? String(c[iV] || "") : "";
+    const valor = parseFloat(vRaw.replace(/R\$\s*/g,"").replace(/\./g,"").replace(",",".").trim()) || 0;
+    const id    = `${produto}__${marca}__${i}`;
+    pedidos.push({ id, marca, produto, valor });
+  }
+  return pedidos;
+}
+
+// ── NAVEGAÇÃO ──
+function mostrarApp() {
+  document.getElementById("import-screen").style.display = "none";
+  document.getElementById("app-screen").style.display = "block";
+  const total = todos.length;
+  const agora = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  document.getElementById("status-txt").textContent = `${total} pedido${total !== 1 ? 's' : ''} · ${agora}`;
+  filtro = "Todas";
+  render();
+}
+
+function voltarImport() {
+  document.getElementById("app-screen").style.display = "none";
+  document.getElementById("import-screen").style.display = "flex";
+}
+
+// ── RENDER ──
+function getBadgeClass(marca) {
+  const m = (marca || "").toLowerCase();
+  if (m.includes("natura"))     return "brand-natura";
+  if (m.includes("mary kay"))   return "brand-marykay";
+  if (m.includes("boticário") || m.includes("boticario")) return "brand-boticario";
+  if (m.includes("avon"))       return "brand-avon";
+  if (m.includes("eudora"))     return "brand-eudora";
+  return "brand-default";
+}
+
+function render() {
+  const marcas = ["Todas", ...new Set(todos.map(p => p.marca).filter(Boolean))];
+  document.getElementById("filters").innerHTML = marcas.map(m =>
+    `<button class="filter-btn ${m === filtro ? 'active' : ''}" onclick="setFiltro('${m.replace(/'/g,"\\'")}')">${m}</button>`
+  ).join("");
+
+  const lista = filtro === "Todas" ? todos : todos.filter(p => p.marca === filtro);
+
+  if (!lista.length) {
+    document.getElementById("main").innerHTML = `<div class="state-msg"><div class="empty-icon">🌸</div>Nenhum produto encontrado.</div>`;
+    atualizarFooter([]);
+    return;
+  }
+
+  document.getElementById("main").innerHTML = `<div class="list">${
+    lista.map((p, i) => {
+      const done = !!feitos[p.id];
+      return `<div class="card ${done ? 'done' : ''}" style="animation-delay:${Math.min(i*0.035,0.5)}s" onclick="toggleFeito('${p.id}')">
+        <div class="check-circle">${done ? '✓' : ''}</div>
+        <div class="card-left">
+          <span class="badge ${getBadgeClass(p.marca)}">${p.marca || "—"}</span>
+          <div class="card-product">${p.produto}</div>
+        </div>
+        <div class="card-price">R$ ${p.valor.toFixed(2).replace(".",",")}</div>
+      </div>`;
+    }).join("")
+  }</div>`;
+
+  atualizarFooter(lista);
+}
+
+function atualizarFooter(lista) {
+  const pendentes = lista.filter(p => !feitos[p.id]);
+  const doneCount = lista.filter(p => feitos[p.id]).length;
+  const total = pendentes.reduce((s, p) => s + p.valor, 0);
+  document.getElementById("footer-count").textContent = `${pendentes.length} pendente${pendentes.length !== 1 ? 's' : ''}`;
+  document.getElementById("footer-sum").textContent = `R$ ${total.toFixed(2).replace(".", ",")}`;
+  document.getElementById("footer-done").textContent = doneCount > 0 ? `${doneCount} ✓` : "";
+  document.getElementById("footer-done").style.display = doneCount > 0 ? "block" : "none";
+}
+
+function setFiltro(m) { filtro = m; render(); }
+
+// ── RISCAR / DESRISCAR ──
+function toggleFeito(id) {
+  if (feitos[id]) {
+    delete feitos[id];
+  } else {
+    feitos[id] = true;
+  }
+  localStorage.setItem("pedidos_feitos", JSON.stringify(feitos));
+  render();
+}
+</script>
+</body>
+</html>
